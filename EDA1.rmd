@@ -1,0 +1,114 @@
+---
+title: "Unit 8-9 | EDA1"
+author: "Lani Lewis"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+````
+
+```{r}
+# LIBRARIES ####
+
+library(caret) # confusion Matrix
+library(e1071) # navebayes
+#library(tm) #text mining library provides the stopwords() function
+library(tidyr)
+#library(plyr)
+#library(jsonlite)
+library(dplyr)
+library(tidyverse)
+library(stringr) # string manipulation
+#library(mvtnorm)
+library(ggplot2)
+library(ggthemes) # Plot Themes
+```
+
+
+```{r}
+# IMPORT DATASETS ####
+# Import Beers data set
+beers <- read.csv(choose.files(),header = T)
+```
+```{r}
+# Import Beers data set
+breweries <- read.csv(choose.files(),header = T)
+```
+
+```{r}
+# UNDERSTAND DATASETS ####
+# first view rows
+head(beers)
+
+head(breweries)
+
+# What kind of data am I looking at
+str(beers)
+
+str(breweries)
+
+# Field summary and mean values
+summary(beers)
+
+summary(breweries)
+```
+
+```{r}
+# REVIEW MISSING VALUES ####
+# beers dataset has missing values in IBU & ABV column
+view(beers)
+
+# There is missing values in some of the rows not all. 
+```
+
+```{r}
+## Look at only NA Values in beers data set ####
+beers_na = beers
+
+# create a logical vector indicating which rows have missing values
+na_rows <- apply(is.na(beers_na), 1, any)
+
+beers_na <- beers_na[na_rows, ]
+
+str(beers)
+str(beers_na)
+```
+
+```{r}
+#### Check and make sure I only see na in ABV and IBU columns ####
+which(is.na(beers_na), arr.ind = TRUE)
+```
+
+```{r}
+#### Count how many objects are NA in the ABV column ####
+str(which(is.na(beers_na$ABV), arr.ind = TRUE))
+# 62 rows
+```
+
+```{r}
+#### Count how many objects are NA in the IBU column ####
+str(which(is.na(beers_na$IBU), arr.ind = TRUE))
+# 1005 rows
+```
+
+```{r}
+#### Understand which rows are missing both ABV and IBU ####
+str(which(is.na(beers_na$IBU) & is.na(beers_na$ABV), arr.ind = TRUE))
+which(is.na(beers_na$IBU) & is.na(beers_na$ABV), arr.ind = TRUE)
+
+# 62 matches so for every ABV NA there will also be an NA IBU
+# Check this theory
+beers_na[112, ] # Double Play Pilsner | 1541
+beers_na[117, ] # N Street Drive-In 50th Anniversary IPA |  1025
+beers_na[123, ] # Professor Black | 2490
+beers_na[124, ] # Little Boss | 2489
+beers_na[125, ] # Van Dayum! | 2488
+```
+
+```{r}
+# MERGE DATASETS ####
+
+
+```
