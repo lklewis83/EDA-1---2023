@@ -1,4 +1,4 @@
----
+e---
 title: "Unit 8-9 | EDA1"
 author: "Lani Lewis"
 date: "`r Sys.Date()`"
@@ -7,11 +7,11 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-````
+```
 
 ```{r}
 # LIBRARIES ####
-
+library(maps)
 library(caret) # confusion Matrix
 library(e1071) # navebayes
 #library(tm) #text mining library provides the stopwords() function
@@ -108,7 +108,242 @@ beers_na[125, ] # Van Dayum! | 2488
 ```
 
 ```{r}
-# MERGE DATASETS ####
+# EXPORT NA FIELDS TO CSV ####
+write.csv(beers_na, "Missing_Data.csv", row.names = T)
+```
 
+```{r}
+# RENAME NA FIELDS ####
+beers$ABV <- ifelse(is.na(beers$ABV),"Missing_ABV_Data",beers$ABV)
+beers$IBU <- ifelse(is.na(beers$IBU),"Missing_IBU_Data",beers$IBU)
+
+str(which(is.na(beers$IBU) & is.na(beers$ABV), arr.ind = TRUE))
+
+view(beers)
+```
+
+```{r}
+# MERGE DATA ####
+# Rename Column Names for Consistency and Merge Process
+colnames(beers)[5] <- c("Brew_ID")
+colnames(beers)[1] <- c("Beer_Name")
+colnames(breweries)[2] <- c("Brewery")
+
+# Merge Data
+beer_ds <- merge(beers,breweries, by = "Brew_ID")
+str(beer_ds)
+```
+
+```{r}
+# How many breweries are present in each state? ####
+state_cnt <- beer_ds %>% count(State, sort = T)
+colnames(state_cnt)[2] <- "Number_of_States"
+state_cnt <- arrange(state_cnt, desc(Number_of_States))
+str(state_cnt)
+```
+
+```{r}
+# PLOT1 | How many breweries are present in each state? ####
+state_cnt %>% arrange(state_cnt, desc(Number_of_States)) %>%
+  ggplot(aes(x = Number_of_States, fill = State)) +
+  geom_histogram() +
+  xlab("Number of Breweries by States") +
+  ylab("") +
+  facet_wrap(Number_of_States ~ State) +
+  scale_y_discrete() +
+  theme(legend.position = "none")
+  
+```
+
+```{r}
+# PLOT2 | How many breweries are present in each state? ####
+head(state_cnt, 10) %>% 
+  ggplot(aes(x = Number_of_States, y = State, fill = State)) +
+  geom_bar(stat = "identity") 
+```
+
+```{r}
+# REMOVE STRING VALUES FROM NUMERIC COLUMN SO MATHMATICAL FORUMALS WILL WORK ####
+beers_ds <- beer_ds
+
+beers_ds$State = as.factor(beers_ds$State)
+beers_ds$IBU = as.numeric(beers_ds$IBU)
+beers_ds$ABV = as.numeric(beers_ds$ABV)
+
+beers_ds <- beers_ds %>%
+  filter(!is.character(IBU))
+
+beers_ds <- beers_ds %>%
+  filter(!is.character(ABV))
+
+beers_ds = drop_na(beers_ds)
+
+view(beers_ds)
+```
+
+```{r}
+# DATAFRAME FOR MEDIAN AND MEAN VALUES ####
+# WILL BE USED FOR PLOTTING
+plot_ds <- as.data.frame(matrix(nrow = 50, ncol = 0))
+
+plot_ds
+```
+
+```{r}
+# Compute the median alcohol content and international bitterness unit for each state. ####
+## IBU Median by State ####
+plot_ds <- beers_ds %>% group_by(State) %>%
+  summarise(median = median(IBU))
+
+plot_ds <- arrange(plot_ds, desc(median))
+
+colnames(plot_ds)[2] <- c("IBU_Median")
+
+plot_ds
+```
+
+```{r}
+## ABV median by State ####
+ABV_Median <- beers_ds %>% group_by(State) %>%
+  summarise(median = median(ABV))
+
+ABV_Median <- arrange(ABV_Median, desc(median))
+
+ABV_Median
+
+# Merge data with Plot data
+plot_ds <- merge(plot_ds, ABV_Median, by = "State")
+
+colnames(plot_ds)[3] <- c("ABV_Median")
+
+plot_ds
+```
+
+```{r}
+## IBU Mean by State ####
+IBU_Mean <- beers_ds %>% group_by(State) %>%
+  summarise(mean = mean(IBU))
+
+IBU_Mean <- arrange(IBU_Mean, desc(mean))
+
+IBU_Mean
+
+# Merge data with Plot data
+plot_ds <- merge(plot_ds, IBU_Mean, by = "State")
+
+colnames(plot_ds)[4] <- c("IBU_Mean")
+
+plot_ds
+```
+
+```{r}
+## ABV Mean by State ####
+ABV_Mean <- beers_ds %>% group_by(State) %>%
+  summarise(mean = mean(ABV))
+
+ABV_Mean <- arrange(ABV_Mean, desc(mean))
+
+ABV_Mean
+
+# Merge data with Plot data
+plot_ds <- merge(plot_ds, ABV_Mean, by = "State")
+
+colnames(plot_ds)[5] <- c("ABV_Mean")
+
+plot_ds
+```
+
+```{r}
+# PREP DATA FOR PLOTTING ####
+#view(map_data("world"))
+
+plt_ds <- plot_ds
+
+US_Map <- map_data("world") %>% filter(region=="USA")
+#US_City_Map <- world.cities %>% filter(country.etc=="USA")
+
+colnames(US_Map)[6] <- c("State")
+
+plt_ds$State = as.character(plt_ds$State)
+
+str(US_Map)
+str(plt_ds)
+
+view(US_Map)
+
+# Not working being states is abbreviated in on ds and not the other ####
+plt_ds = view(merge(plt_ds, US_Map, by = "State", all.x = T))
+
+view(plt_ds)
+```
+
+```{r}
+# MAP PLOT IBU MEDIAN AND MEAN ####
+# MAP PLOT NEEDS LAT AND LONG FOR STATE ABBREVIATION TO WORK
+plt_ds %>% ggplot() +
+  geom_polygon(aes(x = long, y = lat, group = group)) +
+  geom_point(aes(x = IBU_Mean, y = IBU_Median, fill = State))
+  
+
+```
+
+```{r}
+# PLOT IBU Median by States ####
+plot_ds %>% arrange(IBU_Median, desc(State)) %>%
+  ggplot(aes(x = IBU_Median, fill = State)) +
+  geom_histogram() +
+  xlab("IBU Median by States") +
+  ylab("") +
+  facet_wrap(IBU_Median ~ State) +
+  scale_y_discrete() +
+  theme(legend.position = "none")
+
+```
+
+```{r}
+# FIX ROUNDING ####
+plot_ds$IBU_Mean <- round(plot_ds$IBU_Mean, digits = 3)
+
+# PLOT IBU Mean by States ####
+plot_ds %>% arrange(IBU_Mean, desc(State)) %>%
+  ggplot(aes(x = IBU_Mean, fill = State)) +
+  geom_histogram() +
+  xlab("IBU Mean by States") +
+  ylab("") +
+  facet_wrap(IBU_Mean ~ State) +
+  scale_y_discrete() +
+  theme(legend.position = "none")
+
+```
+
+```{r}
+# FIX ROUNDING ####
+plot_ds$ABV_Median <- round(plot_ds$ABV_Median, digits = 3)
+
+# PLOT ABV Median by States ####
+plot_ds %>% arrange(ABV_Median, desc(State)) %>%
+  ggplot(aes(x = ABV_Median, fill = State)) +
+  geom_histogram() +
+  xlab("ABV Median by States") +
+  ylab("") +
+  facet_wrap(ABV_Median ~ State) +
+  scale_y_discrete() +
+  theme(legend.position = "none")
+
+```
+
+```{r}
+# FIX ROUNDING ####
+plot_ds$ABV_Mean <- round(plot_ds$ABV_Mean, digits = 3)
+
+# PLOT ABV Mean by States ####
+plot_ds %>% arrange(ABV_Mean, desc(State)) %>%
+  ggplot(aes(x = ABV_Mean, fill = State)) +
+  geom_histogram() +
+  xlab("ABV Mean by States") +
+  ylab("") +
+  facet_wrap(ABV_Mean ~ State) +
+  scale_y_discrete() +
+  theme(legend.position = "none")
 
 ```
