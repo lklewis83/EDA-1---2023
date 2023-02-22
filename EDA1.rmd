@@ -11,7 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 # LIBRARIES ####
-library(maps)
+library(maps) # lat and long
+library(usmap)
 library(caret) # confusion Matrix
 library(e1071) # navebayes
 #library(tm) #text mining library provides the stopwords() function
@@ -33,32 +34,31 @@ library(ggthemes) # Plot Themes
 beers <- read.csv(choose.files(),header = T)
 ```
 ```{r}
-# Import Beers data set
+# Import Breweries data set
 breweries <- read.csv(choose.files(),header = T)
+```
+```{r}
+# Import Breweries data set
+state_abb_list <- read.csv(choose.files(),header = T)
 ```
 
 ```{r}
 # UNDERSTAND DATASETS ####
-# first view rows
-head(beers)
-
-head(breweries)
-
 # What kind of data am I looking at
 str(beers)
 
 str(breweries)
 
-# Field summary and mean values
-summary(beers)
-
-summary(breweries)
+str(state_abb_list)
 ```
 
 ```{r}
 # REVIEW MISSING VALUES ####
 # beers dataset has missing values in IBU & ABV column
 view(beers)
+
+## SFAE BEER DATASET CHECKPOINT ####
+safe_beers = beers
 
 # There is missing values in some of the rows not all. 
 ```
@@ -117,6 +117,7 @@ write.csv(beers_na, "Missing_Data.csv", row.names = T)
 beers$ABV <- ifelse(is.na(beers$ABV),"Missing_ABV_Data",beers$ABV)
 beers$IBU <- ifelse(is.na(beers$IBU),"Missing_IBU_Data",beers$IBU)
 
+
 str(which(is.na(beers$IBU) & is.na(beers$ABV), arr.ind = TRUE))
 
 view(beers)
@@ -129,9 +130,16 @@ colnames(beers)[5] <- c("Brew_ID")
 colnames(beers)[1] <- c("Beer_Name")
 colnames(breweries)[2] <- c("Brewery")
 
+colnames(safe_beers)[5] <- c("Brew_ID")
+colnames(safe_beers)[1] <- c("Beer_Name")
+
+
 # Merge Data
 beer_ds <- merge(beers,breweries, by = "Brew_ID")
+
+all_beer_ds <- merge(safe_beers,breweries, by = "Brew_ID")
 str(beer_ds)
+str(all_beer_ds)
 ```
 
 ```{r}
@@ -143,7 +151,7 @@ str(state_cnt)
 ```
 
 ```{r}
-# PLOT1 | How many breweries are present in each state? ####
+# PLOT1 Facet Wrap| How many breweries are present in each state? ####
 state_cnt %>% arrange(state_cnt, desc(Number_of_States)) %>%
   ggplot(aes(x = Number_of_States, fill = State)) +
   geom_histogram() +
@@ -156,7 +164,7 @@ state_cnt %>% arrange(state_cnt, desc(Number_of_States)) %>%
 ```
 
 ```{r}
-# PLOT2 | How many breweries are present in each state? ####
+# PLOT2 Bar Chart| How many breweries are present in each state? ####
 head(state_cnt, 10) %>% 
   ggplot(aes(x = Number_of_States, y = State, fill = State)) +
   geom_bar(stat = "identity") 
@@ -179,6 +187,20 @@ beers_ds <- beers_ds %>%
 beers_ds = drop_na(beers_ds)
 
 view(beers_ds)
+```
+
+```{r}
+# HANDLING MISSING VALUES WITH CUMPUTED VALUES ####
+safe_beers$Style = as.factor(safe_beers$Style)
+
+style_ABV_cnt <- aggregate(ABV ~ Style, safe_beers, median)
+style_IBU_cnt <- aggregate(IBU ~ Style, safe_beers, median)
+
+test <- ifelse(is.na(safe_beers$ABV) & safe_beers$Style == style_ABV_cnt$Style , style_ABV_cnt, safe_beers$ABV)
+safe_beers$IBU <- ifelse(is.na(safe_beers$IBU), style_IBU_cnt, safe_beers$IBU)
+
+?filter
+str(safe_beers)
 ```
 
 ```{r}
@@ -254,31 +276,70 @@ plot_ds
 ```
 
 ```{r}
-# PREP DATA FOR PLOTTING ####
-#view(map_data("world"))
+# MERGE MEDIAN DATASET WITH STATE ABBREVIATIONS ####
+plt_ds = plot_ds
 
-plt_ds <- plot_ds
+# Change from factor to character
+plt_ds$State <- as.character(plt_ds$State)
 
+# Remove spaces in state field
+plt_ds$State <- gsub("\\s", "", plt_ds$State)
+
+# Change column names
+colnames(state_abb_list)[1] <- c("Full_State")
+colnames(state_abb_list)[3] <- c("State")
+
+# Left Merge the data
+plt_ds <- merge(plt_ds, state_abb_list, by = "State", all.x = T )
+
+str(plt_ds)
+
+```
+
+```{r}
+# MERGE STATE LAT AND LONG ####
+
+# Has Lat and long cordinates
 US_Map <- map_data("world") %>% filter(region=="USA")
-#US_City_Map <- world.cities %>% filter(country.etc=="USA")
 
-colnames(US_Map)[6] <- c("State")
+# rename column for merge
+colnames(US_Map)[6] <- c("Full_State")
 
-plt_ds$State = as.character(plt_ds$State)
 
 str(US_Map)
 str(plt_ds)
 
 view(US_Map)
 
-# Not working being states is abbreviated in on ds and not the other ####
-plt_ds = view(merge(plt_ds, US_Map, by = "State", all.x = T))
+# Left Merge 
+plt_ds = view(merge(plt_ds, US_Map, by = "Full_State", all.x = T))
 
 view(plt_ds)
 ```
 
 ```{r}
 # MAP PLOT IBU MEDIAN AND MEAN ####
+# US MAP 
+plot_usmap(regions = "states") + 
+  labs(title = "U.S. States",
+       subtitle = "This is a blank map of the United States.") + 
+  theme(panel.background=element_blank())
+
+## MAINE MAP PLOT ####
+plot_usmap(include = c("ME")) +
+  labs(title = "MAINE") +
+  theme(panel.background = element_rect(color = "blue"))
+
+## COLORADO MAP PLOT ####
+plot_usmap(include = c("CO")) +
+  labs(title = "COLORADO") +
+  theme(panel.background = element_rect(color = "blue"))
+
+## NEW ENGLAND PLOT ####
+plot_usmap(include = c("CT", "ME", "MA", "NH", "VT")) +
+  labs(title = "New England Region") +
+  theme(panel.background = element_rect(color = "blue"))
+
 # MAP PLOT NEEDS LAT AND LONG FOR STATE ABBREVIATION TO WORK
 plt_ds %>% ggplot() +
   geom_polygon(aes(x = long, y = lat, group = group)) +
@@ -347,3 +408,6 @@ plot_ds %>% arrange(ABV_Mean, desc(State)) %>%
   theme(legend.position = "none")
 
 ```
+
+```{r}
+str()
