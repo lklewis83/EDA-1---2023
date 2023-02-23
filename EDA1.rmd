@@ -113,7 +113,7 @@ write.csv(beers_na, "Missing_Data.csv", row.names = T)
 ```
 
 ```{r}
-# RENAME NA FIELDS ####
+# RENAME NA FIELDS | DO NOT USE ####
 beers$ABV <- ifelse(is.na(beers$ABV),"Missing_ABV_Data",beers$ABV)
 beers$IBU <- ifelse(is.na(beers$IBU),"Missing_IBU_Data",beers$IBU)
 
@@ -191,16 +191,31 @@ view(beers_ds)
 
 ```{r}
 # HANDLING MISSING VALUES WITH CUMPUTED VALUES ####
-safe_beers$Style = as.factor(safe_beers$Style)
+all_beer_ds$Style = as.factor(all_beer_ds$Style)
 
-style_ABV_cnt <- aggregate(ABV ~ Style, safe_beers, median)
-style_IBU_cnt <- aggregate(IBU ~ Style, safe_beers, median)
 
-test <- ifelse(is.na(safe_beers$ABV) & safe_beers$Style == style_ABV_cnt$Style , style_ABV_cnt, safe_beers$ABV)
-safe_beers$IBU <- ifelse(is.na(safe_beers$IBU), style_IBU_cnt, safe_beers$IBU)
+style_ABV_cnt <- aggregate(ABV ~ Style, all_beer_ds, median)
+style_IBU_cnt <- aggregate(IBU ~ Style, all_beer_ds, median)
 
-?filter
-str(safe_beers)
+index_safe_beers_ABV = which(is.na(all_beer_ds$ABV))
+index_safe_beers_IBU = which(is.na(all_beer_ds$IBU))
+
+
+for (i in 1:length(index_safe_beers_ABV)) {
+  
+  all_beer_ds[index_safe_beers_ABV[i], "ABV"] = style_ABV_cnt[style_ABV_cnt$Style == all_beer_ds[index_safe_beers_ABV[i], "Style"], "ABV"]
+}
+
+
+for (j in 1:length(index_safe_beers_IBU)) {
+  
+  all_beer_ds[index_safe_beers_IBU[j], "IBU"] = style_IBU_cnt[style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"], "IBU"](0)
+  
+}
+
+all_beer_ds[75, ]
+all_beer_ds[76, ]
+
 ```
 
 ```{r}
@@ -289,10 +304,24 @@ plt_ds$State <- gsub("\\s", "", plt_ds$State)
 colnames(state_abb_list)[1] <- c("Full_State")
 colnames(state_abb_list)[3] <- c("State")
 
+# MERGE median values
+all_beer_ds <- merge(all_beer_ds, plt_ds, by = "State", all.x = T )
+
 # Left Merge the data
 plt_ds <- merge(plt_ds, state_abb_list, by = "State", all.x = T )
 
 str(plt_ds)
+
+```
+
+
+```{r}
+# MERGE AND CREATE FULL DATASET FOR CHARTS ####
+
+# Remove spaces in state field
+all_beer_ds$State <- gsub("\\s", "", all_beer_ds$State)
+
+all_beer_ds <- merge(all_beer_ds, state_abb_list, by = "State", all.x = T )
 
 ```
 
@@ -311,16 +340,21 @@ str(plt_ds)
 
 view(US_Map)
 
+
 # Left Merge 
-plt_ds = view(merge(plt_ds, US_Map, by = "Full_State", all.x = T))
+plt_ds = merge(plt_ds, US_Map, by = "Full_State", all.x = T)
 
 view(plt_ds)
 ```
+
+
 
 ```{r}
 # MAP PLOT IBU MEDIAN AND MEAN ####
 # US MAP 
 plot_usmap(regions = "states") + 
+  geom_point(x = 88.07113, y = 30.25234, color = "blue", size = 3) +
+  geom_point(x = 31.9686, y = 99.9018, color = "Pink")
   labs(title = "U.S. States",
        subtitle = "This is a blank map of the United States.") + 
   theme(panel.background=element_blank())
@@ -341,8 +375,10 @@ plot_usmap(include = c("CT", "ME", "MA", "NH", "VT")) +
   theme(panel.background = element_rect(color = "blue"))
 
 # MAP PLOT NEEDS LAT AND LONG FOR STATE ABBREVIATION TO WORK
+#Heat MAP Video ####
+
 plt_ds %>% ggplot() +
-  geom_polygon(aes(x = long, y = lat, group = group)) +
+  geom_polygon(aes(x = long, y = lat)) +
   geom_point(aes(x = IBU_Mean, y = IBU_Median, fill = State))
   
 
@@ -409,5 +445,3 @@ plot_ds %>% arrange(ABV_Mean, desc(State)) %>%
 
 ```
 
-```{r}
-str()
