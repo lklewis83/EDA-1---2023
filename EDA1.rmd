@@ -25,6 +25,7 @@ library(stringr) # string manipulation
 #library(mvtnorm)
 library(ggplot2)
 library(ggthemes) # Plot Themes
+library(plotly)
 ```
 
 
@@ -72,31 +73,35 @@ na_rows <- apply(is.na(beers_na), 1, any)
 
 beers_na <- beers_na[na_rows, ]
 
-str(beers)
 str(beers_na)
 ```
 
 ```{r}
-#### Check and make sure I only see na in ABV and IBU columns ####
+#### Check and make sure I only see na in ABV(3) and IBU(4) columns ####
 which(is.na(beers_na), arr.ind = TRUE)
 ```
 
 ```{r}
 #### Count how many objects are NA in the ABV column ####
-str(which(is.na(beers_na$ABV), arr.ind = TRUE))
+ABV_na_Index <- which(is.na(beers_na$ABV), arr.ind = TRUE)
 # 62 rows
+
+ABV_CNT <- length(ABV_na_Index)
 ```
 
 ```{r}
 #### Count how many objects are NA in the IBU column ####
-str(which(is.na(beers_na$IBU), arr.ind = TRUE))
+IBU_na_Index <- which(is.na(beers_na$IBU), arr.ind = TRUE)
 # 1005 rows
+
+IBU_Cnt <- length(IBU_na_Index)
 ```
 
 ```{r}
 #### Understand which rows are missing both ABV and IBU ####
-str(which(is.na(beers_na$IBU) & is.na(beers_na$ABV), arr.ind = TRUE))
-which(is.na(beers_na$IBU) & is.na(beers_na$ABV), arr.ind = TRUE)
+#str(which(is.na(beers_na$IBU) & is.na(beers_na$ABV), arr.ind = TRUE))
+
+#which(is.na(beers_na$IBU) & is.na(beers_na$ABV), arr.ind = TRUE)
 
 # 62 matches so for every ABV NA there will also be an NA IBU
 # Check this theory
@@ -106,6 +111,25 @@ beers_na[123, ] # Professor Black | 2490
 beers_na[124, ] # Little Boss | 2489
 beers_na[125, ] # Van Dayum! | 2488
 ```
+
+
+```{r}
+# MIssing Data PLot 1 ####
+g <- ggplot() +
+  geom_bar(aes(y = length(IBU_na_Index), x = length(ABV_na_Index)), stat = "Identity")
+
+
+ggplotly(g)
+```
+
+```{r}
+# MIssing Data PLot 2 ####
+beers_na %>%
+  ggplot() +
+  geom_point(aes(y = as.factor(Style), x = as.factor(Ounces), color = as.factor(Ounces)), position = "jitter")
+
+```
+
 
 ```{r}
 # EXPORT NA FIELDS TO CSV ####
@@ -138,41 +162,57 @@ colnames(safe_beers)[1] <- c("Beer_Name")
 beer_ds <- merge(beers,breweries, by = "Brew_ID")
 
 all_beer_ds <- merge(safe_beers,breweries, by = "Brew_ID")
+
+# Check Data
 str(beer_ds)
 str(all_beer_ds)
 ```
 
 ```{r}
-# How many breweries are present in each state? ####
-state_cnt <- beer_ds %>% count(State, sort = T)
-colnames(state_cnt)[2] <- "Number_of_States"
-state_cnt <- arrange(state_cnt, desc(Number_of_States))
-str(state_cnt)
-```
+# HANDLING MISSING VALUES WITH CUMPUTED VALUES ####
+all_beer_ds$Style = as.factor(all_beer_ds$Style)
 
-```{r}
-# PLOT1 Facet Wrap| How many breweries are present in each state? ####
-state_cnt %>% arrange(state_cnt, desc(Number_of_States)) %>%
-  ggplot(aes(x = Number_of_States, fill = State)) +
-  geom_histogram() +
-  xlab("Number of Breweries by States") +
-  ylab("") +
-  facet_wrap(Number_of_States ~ State) +
-  scale_y_discrete() +
-  theme(legend.position = "none")
+## FInd Median based on Styel ####
+style_ABV_cnt <- aggregate(ABV ~ Style, all_beer_ds, median)
+style_IBU_cnt <- aggregate(IBU ~ Style, all_beer_ds, median)
+
+## Find the Median IBU for all beers ####
+no_style_IBU_cnt <- median(style_IBU_cnt$IBU)
+
+# Grab the index of each NA row by ABV and IBU ####
+index_safe_beers_ABV = which(is.na(all_beer_ds$ABV))
+index_safe_beers_IBU = which(is.na(all_beer_ds$IBU))
+
+## ABV LOOP MEDIAN ####
+for (i in 1:length(index_safe_beers_ABV)) {
   
+  all_beer_ds[index_safe_beers_ABV[i], "ABV"] = style_ABV_cnt[style_ABV_cnt$Style == all_beer_ds[index_safe_beers_ABV[i], "Style"], "ABV"]
+}
+
+
+
+## IBU LOOP MEDIAN ####
+### FIX ####
+for (j in 1:length(index_safe_beers_IBU)) {
+  
+  if (style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"] ) {
+  
+  all_beer_ds[index_safe_beers_IBU[j], "IBU"] = style_IBU_cnt[style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"], "IBU"] 
+  }
+  
+   all_beer_ds[index_safe_beers_IBU[j], "IBU"] = no_style_IBU_cnt
+}
+
+#all_beer_ds[75, ]
+#all_beer_ds[60, ]
+
+
 ```
 
-```{r}
-# PLOT2 Bar Chart| How many breweries are present in each state? ####
-head(state_cnt, 10) %>% 
-  ggplot(aes(x = Number_of_States, y = State, fill = State)) +
-  geom_bar(stat = "identity") 
-```
 
 ```{r}
 # REMOVE STRING VALUES FROM NUMERIC COLUMN SO MATHMATICAL FORUMALS WILL WORK ####
-beers_ds <- beer_ds
+beers_ds <- all_beer_ds
 
 beers_ds$State = as.factor(beers_ds$State)
 beers_ds$IBU = as.numeric(beers_ds$IBU)
@@ -189,34 +229,7 @@ beers_ds = drop_na(beers_ds)
 view(beers_ds)
 ```
 
-```{r}
-# HANDLING MISSING VALUES WITH CUMPUTED VALUES ####
-all_beer_ds$Style = as.factor(all_beer_ds$Style)
 
-
-style_ABV_cnt <- aggregate(ABV ~ Style, all_beer_ds, median)
-style_IBU_cnt <- aggregate(IBU ~ Style, all_beer_ds, median)
-
-index_safe_beers_ABV = which(is.na(all_beer_ds$ABV))
-index_safe_beers_IBU = which(is.na(all_beer_ds$IBU))
-
-
-for (i in 1:length(index_safe_beers_ABV)) {
-  
-  all_beer_ds[index_safe_beers_ABV[i], "ABV"] = style_ABV_cnt[style_ABV_cnt$Style == all_beer_ds[index_safe_beers_ABV[i], "Style"], "ABV"]
-}
-
-
-for (j in 1:length(index_safe_beers_IBU)) {
-  
-  all_beer_ds[index_safe_beers_IBU[j], "IBU"] = style_IBU_cnt[style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"], "IBU"](0)
-  
-}
-
-all_beer_ds[75, ]
-all_beer_ds[76, ]
-
-```
 
 ```{r}
 # DATAFRAME FOR MEDIAN AND MEAN VALUES ####
@@ -305,7 +318,7 @@ colnames(state_abb_list)[1] <- c("Full_State")
 colnames(state_abb_list)[3] <- c("State")
 
 # MERGE median values
-all_beer_ds <- merge(all_beer_ds, plt_ds, by = "State", all.x = T )
+all_beer_ds <- merge(all_beer_ds, plt_ds, by = "State")
 
 # Left Merge the data
 plt_ds <- merge(plt_ds, state_abb_list, by = "State", all.x = T )
@@ -335,19 +348,58 @@ US_Map <- map_data("world") %>% filter(region=="USA")
 colnames(US_Map)[6] <- c("Full_State")
 
 
-str(US_Map)
-str(plt_ds)
+#str(US_Map)
+#str(plt_ds)
 
-view(US_Map)
+#view(US_Map)
 
 
 # Left Merge 
 plt_ds = merge(plt_ds, US_Map, by = "Full_State", all.x = T)
 
-view(plt_ds)
+
+str(plt_ds)
 ```
 
 
+```{r}
+# How many breweries are present in each state? | State_cnt ####
+state_cnt <- all_beer_ds %>% count(State, sort = T)
+
+colnames(state_cnt)[2] <- "Number_of_States"
+
+state_cnt <- arrange(state_cnt, desc(Number_of_States))
+
+# Remove spaces in state field
+#state_cnt$State <- gsub("\\s", "", state_cnt$State)
+
+# Left Merge 
+state_cnt = merge(state_cnt, state_abb_list, by = "State", all.y = T)
+
+
+str(state_cnt)
+```
+
+
+```{r}
+# PLOT1 Facet Wrap| How many breweries are present in each state? ####
+state_cnt %>% arrange(state_cnt, desc(Number_of_States)) %>%
+  ggplot(aes(x = Number_of_States, fill = Full_State)) +
+  geom_histogram() +
+  xlab("Number of Breweries by States") +
+  ylab("") +
+  facet_wrap(Number_of_States ~ Full_State) +
+  scale_y_discrete() +
+  theme(legend.position = "none")
+  
+```
+
+```{r}
+# PLOT2 Bar Chart| How many breweries are present in each state? ####
+head(state_cnt, 10) %>% 
+  ggplot(aes(x = Number_of_States, y = State, fill = Full_State)) +
+  geom_bar(stat = "identity") 
+```
 
 ```{r}
 # MAP PLOT IBU MEDIAN AND MEAN ####
@@ -443,5 +495,15 @@ plot_ds %>% arrange(ABV_Mean, desc(State)) %>%
   scale_y_discrete() +
   theme(legend.position = "none")
 
+```
+
+
+```{r}
+# KNN Classification
+
+test = data.frame(ABV = .05, IBU = .12)
+
+
+knn)
 ```
 
