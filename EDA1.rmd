@@ -8,13 +8,14 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
+This area is used to setup R studio for this project
 ```{r}
 # LIBRARIES ####
 library(maps) # lat and long
 library(usmap)
 library(caret) # confusion Matrix
 library(e1071) # navebayes
+library(class) # knn
 #library(tm) #text mining library provides the stopwords() function
 library(tidyr)
 #library(plyr)
@@ -29,6 +30,7 @@ library(plotly)
 ```
 
 
+Import in all datasets
 ```{r}
 # IMPORT DATASETS ####
 # Import Beers data set
@@ -41,6 +43,11 @@ breweries <- read.csv(choose.files(),header = T)
 ```{r}
 # Import Breweries data set
 state_abb_list <- read.csv(choose.files(),header = T)
+
+# Change column names
+colnames(state_abb_list)[1] <- c("Full_State")
+colnames(state_abb_list)[3] <- c("State")
+
 ```
 
 ```{r}
@@ -64,6 +71,8 @@ safe_beers = beers
 # There is missing values in some of the rows not all. 
 ```
 
+
+Handling Missing Data Files for Question #3
 ```{r}
 ## Look at only NA Values in beers data set ####
 beers_na = beers
@@ -126,8 +135,10 @@ ggplotly(g)
 # MIssing Data PLot 2 ####
 beers_na %>%
   ggplot() +
-  geom_point(aes(y = as.factor(Style), x = as.factor(Ounces), color = as.factor(Ounces)), position = "jitter")
-
+  geom_point(aes(y = as.factor(Style), x = as.factor(Ounces), color = as.factor(Ounces)), position = "jitter") + 
+  xlab("Ounces of Beer") +
+  ylab("Style of Beer") +
+  labs(color = "Ounces") 
 ```
 
 
@@ -147,8 +158,9 @@ str(which(is.na(beers$IBU) & is.na(beers$ABV), arr.ind = TRUE))
 view(beers)
 ```
 
+Merge Datasets together for Question #2
 ```{r}
-# MERGE DATA ####
+# MERGE SAFE_BEERS AND ALL BEER DATA ####
 # Rename Column Names for Consistency and Merge Process
 colnames(beers)[5] <- c("Brew_ID")
 colnames(beers)[1] <- c("Beer_Name")
@@ -161,6 +173,7 @@ colnames(safe_beers)[1] <- c("Beer_Name")
 # Merge Data
 beer_ds <- merge(beers,breweries, by = "Brew_ID")
 
+## CREATE ALL_BEER_DS ####
 all_beer_ds <- merge(safe_beers,breweries, by = "Brew_ID")
 
 # Check Data
@@ -168,6 +181,8 @@ str(beer_ds)
 str(all_beer_ds)
 ```
 
+
+Handle Missing Values for Question #3
 ```{r}
 # HANDLING MISSING VALUES WITH CUMPUTED VALUES ####
 all_beer_ds$Style = as.factor(all_beer_ds$Style)
@@ -212,25 +227,28 @@ for (j in 1:length(index_safe_beers_IBU)) {
 
 ```{r}
 # REMOVE STRING VALUES FROM NUMERIC COLUMN SO MATHMATICAL FORUMALS WILL WORK ####
+
+## Beers_ds CHECKPOINT ####
 beers_ds <- all_beer_ds
 
 beers_ds$State = as.factor(beers_ds$State)
 beers_ds$IBU = as.numeric(beers_ds$IBU)
 beers_ds$ABV = as.numeric(beers_ds$ABV)
 
-beers_ds <- beers_ds %>%
-  filter(!is.character(IBU))
+#beers_ds <- beers_ds %>%
+  #filter(!is.character(IBU))
 
-beers_ds <- beers_ds %>%
-  filter(!is.character(ABV))
+#beers_ds <- beers_ds %>%
+  #filter(!is.character(ABV))
 
-beers_ds = drop_na(beers_ds)
+#beers_ds = drop_na(beers_ds)
 
-view(beers_ds)
+str(beers_ds)
 ```
 
 
 
+Compute the median alcohol content and international bitterness unit for each state. Question #4
 ```{r}
 # DATAFRAME FOR MEDIAN AND MEAN VALUES ####
 # WILL BE USED FOR PLOTTING
@@ -313,12 +331,8 @@ plt_ds$State <- as.character(plt_ds$State)
 # Remove spaces in state field
 plt_ds$State <- gsub("\\s", "", plt_ds$State)
 
-# Change column names
-colnames(state_abb_list)[1] <- c("Full_State")
-colnames(state_abb_list)[3] <- c("State")
-
 # MERGE median values
-all_beer_ds <- merge(all_beer_ds, plt_ds, by = "State")
+#all_beer_ds <- merge(all_beer_ds, plt_ds, by = "State")
 
 # Left Merge the data
 plt_ds <- merge(plt_ds, state_abb_list, by = "State", all.x = T )
@@ -330,16 +344,24 @@ str(plt_ds)
 
 ```{r}
 # MERGE AND CREATE FULL DATASET FOR CHARTS ####
+## ALL BEERS DS BACKUP CHECK POINT ####
+backup_ds = all_beer_ds
+
+# RECOVER DATA
+#all_beer_ds = backup_ds 
 
 # Remove spaces in state field
-all_beer_ds$State <- gsub("\\s", "", all_beer_ds$State)
+#all_beer_ds$State <- gsub("\\s", "", all_beer_ds$State)
 
-all_beer_ds <- merge(all_beer_ds, state_abb_list, by = "State", all.x = T )
+#all_beer_ds <- merge(all_beer_ds, state_abb_list, by = "State", all.x = T )
 
+str(beer_ds)
+str(all_beer_ds)
+str(backup_ds)
 ```
 
 ```{r}
-# MERGE STATE LAT AND LONG ####
+# MERGE STATE LAT AND LONG | FIX THIS IS DOUBLING ####
 
 # Has Lat and long cordinates
 US_Map <- map_data("world") %>% filter(region=="USA")
@@ -359,9 +381,10 @@ plt_ds = merge(plt_ds, US_Map, by = "Full_State", all.x = T)
 
 
 str(plt_ds)
+
 ```
 
-
+Compute the Number of Breweries by State Question #1
 ```{r}
 # How many breweries are present in each state? | State_cnt ####
 state_cnt <- all_beer_ds %>% count(State, sort = T)
@@ -396,9 +419,18 @@ state_cnt %>% arrange(state_cnt, desc(Number_of_States)) %>%
 
 ```{r}
 # PLOT2 Bar Chart| How many breweries are present in each state? ####
-head(state_cnt, 10) %>% 
-  ggplot(aes(x = Number_of_States, y = State, fill = Full_State)) +
-  geom_bar(stat = "identity") 
+## FIX NOT GRABBING ACTUAL TOP TEN ####
+Top_Ten <- state_cnt[order(-state_cnt$Number_of_States), ]
+  
+head(Top_Ten, 10) %>% 
+  ggplot(aes(reorder(Number_of_States, x = Full_State), x = Number_of_States, fill = Full_State)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Number_of_States), size = 4, hjust = 1) + 
+  xlab("Number of Breweries") +
+  ylab("State") +
+  theme(legend.position = "none")
+
+# ?color
 ```
 
 ```{r}
@@ -435,6 +467,7 @@ plt_ds %>% ggplot() +
   
 
 ```
+Which state has the most bitter (IBU) beer? Question #5 & 7
 
 ```{r}
 # PLOT IBU Median by States ####
@@ -465,6 +498,9 @@ plot_ds %>% arrange(IBU_Mean, desc(State)) %>%
 
 ```
 
+
+
+Which state has the maximum alcoholic (ABV) beer? Question #5 &7
 ```{r}
 # FIX ROUNDING ####
 plot_ds$ABV_Median <- round(plot_ds$ABV_Median, digits = 3)
@@ -497,13 +533,18 @@ plot_ds %>% arrange(ABV_Mean, desc(State)) %>%
 
 ```
 
-
+What is the probability of picking a beer like Budweiser lager in this list of craft beers.
 ```{r}
 # KNN Classification
+train = drop_na(all_beer_ds)
 
-test = data.frame(ABV = .05, IBU = .12)
+test = data.frame(ABV = .05, IBU = .12) 
 
+#all_beer_ds[, 5:6]
+class <- knn(train[, 5:6], test, train$Style, k = 5, prob = T)
 
-knn)
+class
+
+#confusionMatrix(class, test)
 ```
 
