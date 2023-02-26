@@ -1,3 +1,8 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
 e---
 title: "Unit 8-9 | EDA1"
 author: "Lani Lewis"
@@ -96,6 +101,8 @@ ABV_na_Index <- which(is.na(beers_na$ABV), arr.ind = TRUE)
 # 62 rows
 
 ABV_CNT <- length(ABV_na_Index)
+
+ABV_CNT
 ```
 
 ```{r}
@@ -104,6 +111,8 @@ IBU_na_Index <- which(is.na(beers_na$IBU), arr.ind = TRUE)
 # 1005 rows
 
 IBU_Cnt <- length(IBU_na_Index)
+
+IBU_Cnt
 ```
 
 ```{r}
@@ -171,20 +180,27 @@ colnames(safe_beers)[1] <- c("Beer_Name")
 
 
 # Merge Data
-beer_ds <- merge(beers,breweries, by = "Brew_ID")
+#beer_ds <- merge(beers,breweries, by = "Brew_ID")
 
 ## CREATE ALL_BEER_DS ####
 all_beer_ds <- merge(safe_beers,breweries, by = "Brew_ID")
 
 # Check Data
-str(beer_ds)
+#str(beer_ds)
 str(all_beer_ds)
 ```
 
 
 Handle Missing Values for Question #3
 ```{r}
+## Drop Missing Values - Use Until Loop is Fixed ####
+all_beer_ds = drop_na(all_beer_ds)
+# DROP ------------------------------------
+```
+
+```{r}
 # HANDLING MISSING VALUES WITH CUMPUTED VALUES ####
+
 all_beer_ds$Style = as.factor(all_beer_ds$Style)
 
 ## FInd Median based on Styel ####
@@ -394,7 +410,7 @@ colnames(state_cnt)[2] <- "Number_of_States"
 state_cnt <- arrange(state_cnt, desc(Number_of_States))
 
 # Remove spaces in state field
-#state_cnt$State <- gsub("\\s", "", state_cnt$State)
+state_cnt$State <- gsub("\\s", "", state_cnt$State)
 
 # Left Merge 
 state_cnt = merge(state_cnt, state_abb_list, by = "State", all.y = T)
@@ -433,8 +449,9 @@ head(Top_Ten, 10) %>%
 # ?color
 ```
 
+Question #4 Charts
 ```{r}
-# MAP PLOT IBU MEDIAN AND MEAN ####
+# MAP PLOT IBU MEDIAN AND MEAN | WORK IN####
 # US MAP 
 plot_usmap(regions = "states") + 
   geom_point(x = 88.07113, y = 30.25234, color = "blue", size = 3) +
@@ -467,8 +484,8 @@ plt_ds %>% ggplot() +
   
 
 ```
-Which state has the most bitter (IBU) beer? Question #5 & 7
 
+Which state has the most bitter (IBU) beer? Question #5
 ```{r}
 # PLOT IBU Median by States ####
 plot_ds %>% arrange(IBU_Median, desc(State)) %>%
@@ -481,7 +498,7 @@ plot_ds %>% arrange(IBU_Median, desc(State)) %>%
   theme(legend.position = "none")
 
 ```
-
+MEAN PLOT
 ```{r}
 # FIX ROUNDING ####
 plot_ds$IBU_Mean <- round(plot_ds$IBU_Mean, digits = 3)
@@ -500,7 +517,7 @@ plot_ds %>% arrange(IBU_Mean, desc(State)) %>%
 
 
 
-Which state has the maximum alcoholic (ABV) beer? Question #5 &7
+Which state has the maximum alcoholic (ABV) beer? Question #5 & 6
 ```{r}
 # FIX ROUNDING ####
 plot_ds$ABV_Median <- round(plot_ds$ABV_Median, digits = 3)
@@ -516,7 +533,7 @@ plot_ds %>% arrange(ABV_Median, desc(State)) %>%
   theme(legend.position = "none")
 
 ```
-
+MEAN PLOT
 ```{r}
 # FIX ROUNDING ####
 plot_ds$ABV_Mean <- round(plot_ds$ABV_Mean, digits = 3)
@@ -533,9 +550,26 @@ plot_ds %>% arrange(ABV_Mean, desc(State)) %>%
 
 ```
 
+Draw a scatter plot.  7. Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Question #7
+```{r}
+# MEDIAN PLOT | relationship between IBU and ABV ####
+plot_ds %>% ggplot() +
+  geom_point(aes(x = ABV_Median , y = IBU_Median)) +
+  geom_smooth(aes(x = ABV_Median , y = IBU_Median))
+  
+```
+
+```{r}
+# All Data PLOT | relationship between IBU and ABV ####
+all_beer_ds %>% ggplot() +
+  geom_point(aes(x = ABV, y = IBU, color = IBU), position = "jitter", alpha = .5) +
+  geom_smooth(aes(x = ABV, y = IBU, color = IBU))
+  
+```
+
 What is the probability of picking a beer like Budweiser lager in this list of craft beers.
 ```{r}
-# KNN Classification
+# KNN Classification | FOR PRESENTATION ####
 train = drop_na(all_beer_ds)
 
 test = data.frame(ABV = .05, IBU = .12) 
@@ -548,3 +582,18 @@ class
 #confusionMatrix(class, test)
 ```
 
+
+Question #8 - difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with “Ale” in its name other than IPA). 
+```{r}
+# KNN Classification | FOR PRESENTATION ####
+train2 = train[grepl("Ale", train$Style), ]
+
+test2 = train[grepl("IPA", train$Style), ]
+
+#all_beer_ds[, 5:6]
+class2 <- knn(train2[, 5:6], test2[, 5:6], train2$Style, k = 5, prob = T)
+
+class2
+
+confusionMatrix(table(test2$Style, class2))
+```
