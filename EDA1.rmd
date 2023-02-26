@@ -562,8 +562,9 @@ plot_ds %>% ggplot() +
 ```{r}
 # All Data PLOT | relationship between IBU and ABV ####
 all_beer_ds %>% ggplot() +
-  geom_point(aes(x = ABV, y = IBU, color = IBU), position = "jitter", alpha = .5) +
-  geom_smooth(aes(x = ABV, y = IBU, color = IBU))
+  geom_point(aes(x = ABV, y = IBU, color = IBU), position = "jitter") +
+  geom_smooth(aes(x = ABV, y = IBU, color = IBU)) +
+  scale_color_gradient2(low = "grey", high = "red")
   
 ```
 
@@ -575,7 +576,7 @@ train = drop_na(all_beer_ds)
 test = data.frame(ABV = .05, IBU = .12) 
 
 #all_beer_ds[, 5:6]
-class <- knn(train[, 5:6], test, train$Style, k = 5, prob = T)
+class <- knn(train[, 4:5], test, train$Style, k = 5, prob = T)
 
 class
 
