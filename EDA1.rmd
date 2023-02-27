@@ -194,7 +194,7 @@ str(all_beer_ds)
 Handle Missing Values for Question #3
 ```{r}
 ## Drop Missing Values - Use Until Loop is Fixed ####
-all_beer_ds = drop_na(all_beer_ds)
+# all_beer_ds = drop_na(all_beer_ds)
 # DROP ------------------------------------
 ```
 
@@ -216,13 +216,16 @@ index_safe_beers_IBU = which(is.na(all_beer_ds$IBU))
 
 ## ABV LOOP MEDIAN ####
 for (i in 1:length(index_safe_beers_ABV)) {
-  
   all_beer_ds[index_safe_beers_ABV[i], "ABV"] = style_ABV_cnt[style_ABV_cnt$Style == all_beer_ds[index_safe_beers_ABV[i], "Style"], "ABV"]
 }
 
 
 
 ## IBU LOOP MEDIAN ####
+for (j in 1:length(index_safe_beers_IBU)) {
+  all_beer_ds[index_safe_beers_IBU[j], "IBU"] = style_IBU_cnt[style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"], "IBU"] 
+}
+
 ### FIX ####
 for (j in 1:length(index_safe_beers_IBU)) {
   
@@ -235,7 +238,7 @@ for (j in 1:length(index_safe_beers_IBU)) {
 }
 
 #all_beer_ds[75, ]
-#all_beer_ds[60, ]
+#all_beer_ds[17, ]
 
 
 ```
@@ -586,15 +589,56 @@ class
 
 Question #8 - difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with “Ale” in its name other than IPA). 
 ```{r}
-# KNN Classification | FOR PRESENTATION ####
-train2 = train[grepl("Ale", train$Style), ]
+# KNN Classification IPA Probability ####
+train2 = train[grepl("Ale", train$Style), ] # Everything Ale and IPA
 
-test2 = train[grepl("IPA", train$Style), ]
+test2 = train[grepl("IPA", train$Style), ] # ONLY IPA
 
-#all_beer_ds[, 5:6]
-class2 <- knn(train2[, 5:6], test2[, 5:6], train2$Style, k = 5, prob = T)
+# test2[!grepl("India Pale Ale", test2$Style), ] # NOT India Pale
+
+
+train3 = train2[!grepl("IPA", train2$Style), ] # ONLY ALE and NO IPA Training set
+
+
+
+# Probability of finding an IPA in a list of ALE beers
+class2 <- knn(train2[, 4:5], test2[, 4:5], train2$Style, k = 5, prob = T)
 
 class2
 
+## Probability of finding an IPA similar to an ALE based off ABV or IBU
+class3 <- knn(train3[, 4:5], test2[, 4:5], train3$Style, k = 5, prob = T)
+
+Style_List <- unique(class3)
+
+Style_List = as.data.frame(Style_List)
+
+Style_List %>% ggplot() +
+  geom_histogram(aes(y = Style_List, x = length(Style_List)), stat = "identity")
+
+
 confusionMatrix(table(test2$Style, class2))
+
+confusionMatrix(table(test2$Style, class3))
+```
+
+```{r}
+set.seed(6)
+splitPerc = .75
+
+dim(train2)
+
+train_new = sample(1:dim(train2)[1], round(splitPerc * dim(train2)[1]))
+ALL_Ale_Train = train2[train_new, ]
+ALL_Ale_Test = train2[-train_new, ]
+
+class4 <-knn(ALL_Ale_Train[, c(4:5)], ALL_Ale_Test[, c(4:5)], ALL_Ale_Train$Style, k = 5, prob = T)
+
+confusionMatrix(table(ALL_Ale_Test[ , 6], class4))
+
+
+
+class5 <- knn.cv(train2[, c(4:5)], train2$Style, k = 5, prob = T)
+
+confusionMatrix(table(class5, train2$Style))
 ```
