@@ -42,10 +42,12 @@ Import in all datasets
 # Import Beers data set
 beers <- read.csv(choose.files(),header = T)
 ```
+
 ```{r}
 # Import Breweries data set
 breweries <- read.csv(choose.files(),header = T)
 ```
+
 ```{r}
 # Import Breweries data set
 state_abb_list <- read.csv(choose.files(),header = T)
@@ -53,7 +55,6 @@ state_abb_list <- read.csv(choose.files(),header = T)
 # Change column names
 colnames(state_abb_list)[1] <- c("Full_State")
 colnames(state_abb_list)[3] <- c("State")
-
 ```
 
 ```{r}
@@ -203,67 +204,74 @@ Handle Missing Values for Question #3
 Replace ABV and IBU missing values with Styled median values. This way when we go to grab the median or results wont be so skewed. Especially since we have close to half of the data set missing values.
 ```{r}
 # HANDLING MISSING VALUES WITH CUMPUTED VALUES ####
-
 all_beer_ds$Style = as.factor(all_beer_ds$Style)
-
-# Style with no IBU at all like Rauchier and replace with median first then run the loop 
-missing_IBU <- setdiff(levels(all_beer_ds$Style), levels(as.factor(as.character(style_IBU_cnt$Style))))
-
-## Find the Median IBU for all beers ####
-no_style_IBU_cnt <- median(style_IBU_cnt$IBU)
 
 # Grab the index of each NA row by ABV and IBU ####
 index_safe_beers_ABV = which(is.na(all_beer_ds$ABV))
-index_safe_beers_IBU = which(is.na(all_beer_ds$IBU))
-
-missing_index_IBU = as.integer()
-
-## ABV LOOP MEDIAN ####
-for (i in 1:length(index_safe_beers_ABV)) {
-  all_beer_ds[index_safe_beers_ABV[i], "ABV"] = style_ABV_cnt[style_ABV_cnt$Style == all_beer_ds[index_safe_beers_ABV[i], "Style"], "ABV"]
-}
-
-
-# Add IBU for Styles that couldn't get a median from aggregate function ####
-# Grab the index for missing IBU
-for (m in 1:length(missing_IBU)) {
-  
- 
-  missing_index_IBU[m] = which(grepl(missing_IBU[m], all_beer_ds$Style))
-  
-  missing_index_ale = which(all_beer_ds$Style == "American Wild Ale")
-  
-  missing_index_american = which(all_beer_ds$Style == "American Double")
-  
-  missing_index_a_IPA = which(all_beer_ds$Style == "American IPA")
-}
-
-# Update missing IBU with default Median IBU
-for (n in 1:length(missing_IBU)) {
-  
- 
-  all_beer_ds[missing_index_IBU[n], "IBU"] = no_style_IBU_cnt
- 
-}
-
-
-for (a in 1:length(missing_index_ale)) {
-  all_beer_ds[missing_index_ale[a], "IBU"] = no_style_IBU_cnt
-}
-
+#index_safe_beers_IBU = which(is.na(all_beer_ds$IBU))
 
 ## FInd Median based on Styel ####
 style_ABV_cnt <- aggregate(ABV ~ Style, all_beer_ds, median)
 style_IBU_cnt <- aggregate(IBU ~ Style, all_beer_ds, median)
+```
+
+```{r}
+# Style with no IBU at all like Rauchier and replace with median first then run the loop 
+missing_IBU <- setdiff(levels(all_beer_ds$Style), levels(as.factor(as.character(style_IBU_cnt$Style))))
+
+## Median IBU for all beers ####
+no_style_IBU_cnt <- median(style_IBU_cnt$IBU)
 
 
-## IBU LOOP MEDIAN ####
-for (j in 1:length(style_IBU_cnt)) {
-  print(j)
+# Capture beer index for Loop
+Ale_index <- which(grepl("Ale", all_beer_ds$Style))
+lager_index <- which(grepl("Lager", all_beer_ds$Style))
+Stout_index <- which(grepl("Stout", all_beer_ds$Style))
+missing_index_IBU <- which(is.na(all_beer_ds$IBU))
+
+
+
+# Update all American IPA beers with the following value
+all_beer_ds$IBU[all_beer_ds$Style == "American IPA" & is.na(all_beer_ds$IBU)] <- 55
+
+# ALE Replacement
+for (a in 1:length(Ale_index)) {
   
-  all_beer_ds[index_safe_beers_IBU[j], "IBU"] =  style_IBU_cnt[style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"], "IBU"] 
+  all_beer_ds[Ale_index[a], "IBU"] = 35
+}  
+
+
+
+# lager Replacement
+for (l in 1:length(lager_index)) {
+  
+  all_beer_ds[lager_index[l], "IBU"] = 8
+}  
+
+# Stout Replacement
+for (s in 1:length(Stout_index)) {
+  
+  all_beer_ds[Stout_index[s], "IBU"] = no_style_IBU_cnt
+} 
+
+
+
+for (g in 1:length(missing_index_IBU)) {
+      
+  # General Replacement
+  all_beer_ds[missing_index_IBU[g], "IBU"] = no_style_IBU_cnt
+ 
 }
 ```
+
+
+```{r}
+## ABV LOOP MEDIAN ####
+for (i in 1:length(index_safe_beers_ABV)) {
+  all_beer_ds[index_safe_beers_ABV[i], "ABV"] = style_ABV_cnt[style_ABV_cnt$Style == all_beer_ds[index_safe_beers_ABV[i], "Style"], "ABV"]
+}
+```
+
 
 
 ```{r}
@@ -272,9 +280,9 @@ for (j in 1:length(style_IBU_cnt)) {
 ## Beers_ds CHECKPOINT ####
 beers_ds <- all_beer_ds
 
-beers_ds$State = as.factor(beers_ds$State)
-beers_ds$IBU = as.numeric(beers_ds$IBU)
-beers_ds$ABV = as.numeric(beers_ds$ABV)
+#beers_ds$State = as.factor(beers_ds$State)
+#beers_ds$IBU = as.numeric(beers_ds$IBU)
+#beers_ds$ABV = as.numeric(beers_ds$ABV)
 
 #beers_ds <- beers_ds %>%
   #filter(!is.character(IBU))
@@ -328,39 +336,6 @@ colnames(plot_ds)[3] <- c("ABV_Median")
 plot_ds
 ```
 
-```{r}
-## IBU Mean by State ####
-IBU_Mean <- beers_ds %>% group_by(State) %>%
-  summarise(mean = mean(IBU))
-
-IBU_Mean <- arrange(IBU_Mean, desc(mean))
-
-IBU_Mean
-
-# Merge data with Plot data
-plot_ds <- merge(plot_ds, IBU_Mean, by = "State")
-
-colnames(plot_ds)[4] <- c("IBU_Mean")
-
-plot_ds
-```
-
-```{r}
-## ABV Mean by State ####
-ABV_Mean <- beers_ds %>% group_by(State) %>%
-  summarise(mean = mean(ABV))
-
-ABV_Mean <- arrange(ABV_Mean, desc(mean))
-
-ABV_Mean
-
-# Merge data with Plot data
-plot_ds <- merge(plot_ds, ABV_Mean, by = "State")
-
-colnames(plot_ds)[5] <- c("ABV_Mean")
-
-plot_ds
-```
 
 ```{r}
 # MERGE MEDIAN DATASET WITH STATE ABBREVIATIONS ####
@@ -474,7 +449,7 @@ head(Top_Ten, 10) %>%
 # ?color
 ```
 
-Question #4 Charts
+Question #4 Charts | Fix
 ```{r}
 # MAP PLOT IBU MEDIAN AND MEAN | WORK IN####
 # US MAP 
@@ -523,23 +498,6 @@ plot_ds %>% arrange(IBU_Median, desc(State)) %>%
   theme(legend.position = "none")
 
 ```
-MEAN PLOT
-```{r}
-# FIX ROUNDING ####
-plot_ds$IBU_Mean <- round(plot_ds$IBU_Mean, digits = 3)
-
-# PLOT IBU Mean by States ####
-plot_ds %>% arrange(IBU_Mean, desc(State)) %>%
-  ggplot(aes(x = IBU_Mean, fill = State)) +
-  geom_histogram() +
-  xlab("IBU Mean by States") +
-  ylab("") +
-  facet_wrap(IBU_Mean ~ State) +
-  scale_y_discrete() +
-  theme(legend.position = "none")
-
-```
-
 
 
 Which state has the maximum alcoholic (ABV) beer? Question #5 & 6
@@ -554,22 +512,6 @@ plot_ds %>% arrange(ABV_Median, desc(State)) %>%
   xlab("ABV Median by States") +
   ylab("") +
   facet_wrap(ABV_Median ~ State) +
-  scale_y_discrete() +
-  theme(legend.position = "none")
-
-```
-MEAN PLOT
-```{r}
-# FIX ROUNDING ####
-plot_ds$ABV_Mean <- round(plot_ds$ABV_Mean, digits = 3)
-
-# PLOT ABV Mean by States ####
-plot_ds %>% arrange(ABV_Mean, desc(State)) %>%
-  ggplot(aes(x = ABV_Mean, fill = State)) +
-  geom_histogram() +
-  xlab("ABV Mean by States") +
-  ylab("") +
-  facet_wrap(ABV_Mean ~ State) +
   scale_y_discrete() +
   theme(legend.position = "none")
 
@@ -589,14 +531,14 @@ plot_ds %>% ggplot() +
 all_beer_ds %>% ggplot() +
   geom_point(aes(x = ABV, y = IBU, color = IBU), position = "jitter") +
   geom_smooth(aes(x = ABV, y = IBU, color = IBU)) +
-  scale_color_gradient2(low = "grey", high = "red")
+  scale_color_gradient2(low = "black", high = "red")
   
 ```
 
 What is the probability of picking a beer like Budweiser lager in this list of craft beers.
 ```{r}
 # KNN Classification | FOR PRESENTATION ####
-train = drop_na(all_beer_ds)## Do not want to have to drop na values ####
+train = all_beer_ds
 
 test = data.frame(ABV = .05, IBU = .12) 
 
