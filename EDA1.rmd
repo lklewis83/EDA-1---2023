@@ -206,15 +206,8 @@ Replace ABV and IBU missing values with Styled median values. This way when we g
 
 all_beer_ds$Style = as.factor(all_beer_ds$Style)
 
-## FInd Median based on Styel ####
-style_ABV_cnt <- aggregate(ABV ~ Style, all_beer_ds, median)
-style_IBU_cnt <- aggregate(IBU ~ Style, all_beer_ds, median)
-
-
 # Style with no IBU at all like Rauchier and replace with median first then run the loop 
-setdiff(levels(all_beer_ds$Style), levels(as.factor(as.character(style_IBU_cnt$Style))))
-
-
+missing_IBU <- setdiff(levels(all_beer_ds$Style), levels(as.factor(as.character(style_IBU_cnt$Style))))
 
 ## Find the Median IBU for all beers ####
 no_style_IBU_cnt <- median(style_IBU_cnt$IBU)
@@ -223,18 +216,52 @@ no_style_IBU_cnt <- median(style_IBU_cnt$IBU)
 index_safe_beers_ABV = which(is.na(all_beer_ds$ABV))
 index_safe_beers_IBU = which(is.na(all_beer_ds$IBU))
 
+missing_index_IBU = as.integer()
+
 ## ABV LOOP MEDIAN ####
 for (i in 1:length(index_safe_beers_ABV)) {
   all_beer_ds[index_safe_beers_ABV[i], "ABV"] = style_ABV_cnt[style_ABV_cnt$Style == all_beer_ds[index_safe_beers_ABV[i], "Style"], "ABV"]
 }
 
 
+# Add IBU for Styles that couldn't get a median from aggregate function ####
+# Grab the index for missing IBU
+for (m in 1:length(missing_IBU)) {
+  
+ 
+  missing_index_IBU[m] = which(grepl(missing_IBU[m], all_beer_ds$Style))
+  
+  missing_index_ale = which(all_beer_ds$Style == "American Wild Ale")
+  
+  missing_index_american = which(all_beer_ds$Style == "American Double")
+  
+  missing_index_a_IPA = which(all_beer_ds$Style == "American IPA")
+}
+
+# Update missing IBU with default Median IBU
+for (n in 1:length(missing_IBU)) {
+  
+ 
+  all_beer_ds[missing_index_IBU[n], "IBU"] = no_style_IBU_cnt
+ 
+}
+
+
+for (a in 1:length(missing_index_ale)) {
+  all_beer_ds[missing_index_ale[a], "IBU"] = no_style_IBU_cnt
+}
+
+
+## FInd Median based on Styel ####
+style_ABV_cnt <- aggregate(ABV ~ Style, all_beer_ds, median)
+style_IBU_cnt <- aggregate(IBU ~ Style, all_beer_ds, median)
+
 
 ## IBU LOOP MEDIAN ####
-for (j in 131:1005) {
+for (j in 1:length(style_IBU_cnt)) {
   print(j)
   
-  all_beer_ds[index_safe_beers_IBU[j], "IBU"] <-  style_IBU_cnt[style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"], "IBU"] 
+  all_beer_ds[index_safe_beers_IBU[j], "IBU"] =  style_IBU_cnt[style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"], "IBU"] 
 }
 ```
 
