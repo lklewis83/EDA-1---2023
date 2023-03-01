@@ -13,6 +13,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 This area is used to setup R studio for this project
 ```{r}
 # LIBRARIES ####
@@ -130,7 +131,7 @@ beers_na[124, ] # Little Boss | 2489
 beers_na[125, ] # Van Dayum! | 2488
 ```
 
-
+TEst Plot | Bad Results - Wont Use
 ```{r}
 # MIssing Data PLot 1 ####
 g <- ggplot() +
@@ -140,6 +141,7 @@ g <- ggplot() +
 ggplotly(g)
 ```
 
+Plot to show the missing values in correlation to the size of beer, and we see that the smaller beers have more missing values
 ```{r}
 # MIssing Data PLot 2 ####
 beers_na %>%
@@ -158,13 +160,13 @@ write.csv(beers_na, "Missing_Data.csv", row.names = T)
 
 ```{r}
 # RENAME NA FIELDS | DO NOT USE ####
-beers$ABV <- ifelse(is.na(beers$ABV),"Missing_ABV_Data",beers$ABV)
-beers$IBU <- ifelse(is.na(beers$IBU),"Missing_IBU_Data",beers$IBU)
+#beers$ABV <- ifelse(is.na(beers$ABV),"Missing_ABV_Data",beers$ABV)
+#beers$IBU <- ifelse(is.na(beers$IBU),"Missing_IBU_Data",beers$IBU)
 
 
-str(which(is.na(beers$IBU) & is.na(beers$ABV), arr.ind = TRUE))
+#str(which(is.na(beers$IBU) & is.na(beers$ABV), arr.ind = TRUE))
 
-view(beers)
+#view(beers)
 ```
 
 Merge Datasets together for Question #2
@@ -208,6 +210,12 @@ all_beer_ds$Style = as.factor(all_beer_ds$Style)
 style_ABV_cnt <- aggregate(ABV ~ Style, all_beer_ds, median)
 style_IBU_cnt <- aggregate(IBU ~ Style, all_beer_ds, median)
 
+
+# Style with no IBU at all like Rauchier and replace with median first then run the loop 
+setdiff(levels(all_beer_ds$Style), levels(as.factor(as.character(style_IBU_cnt$Style))))
+
+
+
 ## Find the Median IBU for all beers ####
 no_style_IBU_cnt <- median(style_IBU_cnt$IBU)
 
@@ -223,27 +231,11 @@ for (i in 1:length(index_safe_beers_ABV)) {
 
 
 ## IBU LOOP MEDIAN ####
-for (j in 1:1005) {
+for (j in 131:1005) {
+  print(j)
+  
   all_beer_ds[index_safe_beers_IBU[j], "IBU"] <-  style_IBU_cnt[style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"], "IBU"] 
 }
-```
-
-```{r}
-### FIX ####
-for (j in 1:length(index_safe_beers_IBU)) {
-  
-  if (style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"] ) {
-  
-  all_beer_ds[index_safe_beers_IBU[j], "IBU"] = style_IBU_cnt[style_IBU_cnt$Style == all_beer_ds[index_safe_beers_IBU[j], "Style"], "IBU" ]
-  }
-  
-   all_beer_ds[index_safe_beers_IBU[j], "IBU"] = no_style_IBU_cnt
-}
-
-#all_beer_ds[75, ] # ABV
-#all_beer_ds[17, ] # IBU
-
-
 ```
 
 
@@ -586,62 +578,43 @@ class <- knn(train[, 4:5], test, train$Style, k = 5, prob = T)
 
 class
 
-#confusionMatrix(class, test)
+#table(class, test)
 ```
 
 
 Question #8 - difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with “Ale” in its name other than IPA). 
 ```{r}
 # Create KNN Train and Test Datasets ####
-train2 = train[grepl("Ale", train$Style), ] # Everything Ale and IPA
 
-train3 = train2[!grepl("IPA", train2$Style), ] # ONLY ALE and NO IPA Training set
+train2 = train[grepl("Ale|IPA", train$Style), ] # Everything Ale and IPA
 
-test2 = train[grepl("IPA", train$Style), ] # ONLY IPA
+train2$Classification = ifelse(grepl("\\bAle\\b", train2$Style), "Ale", "IPA" )
+
+# ------------------------ #
+
+train3 = train2[!grepl("\\bIPA\\b", train2$Style), ] # ONLY ALE 
+
+test2 = train2[grepl("\\bIPA\\b", train2$Style), ] # ONLY IPA
+
+#str(train2)
+
+#str(train3)
+
+#str(test2)
 ```
 
-DO NOT USE THIS ONE
-```{r}
-## What is the probability of finding a beer similar to an IPA in a list of ALE and IPA Only beers by ABV and IBU. WILL ####
-class2 <- knn(train2[, 4:5], test2[, 4:5], train2$Style, k = 5, prob = T)
 
-class2
-
-table(test2$Style, class2)
-
-confusionMatrix(table(test2$Style, class2))
-```
 
 What is the probability that we will find similar style beers within the entire dataset based off the ABV and IBU
 ```{r}
-class4 <- knn.cv(train2[, c(4:5)], train2$Style, k = 5, prob = T)
+class4 <- knn.cv(train2[, c(4:5)], train2$Classification, k = 5, prob = T)
 
-table(class5, train2$Style)
+# table(class5, train2$Style)
 
-confusionMatrix(table(class5, train2$Style))
-```
-
-What is the probability of finding a beer similar to an IPA from a list of all ALE based off ABV or IBU. What would the style and probability be?
-```{r}
-class3 <- knn(train3[, 4:5], test2[, 4:5], train3$Style, k = 5, prob = T)
-
-table(test2$Style, class3)
-
-confusionMatrix(table(test2$Style, class3))
-```
-
-```{r}
-# Grab a list of the ALE beers that had a match to an IPA
-Style_List <- unique(class3)
-
-Style_List = as.data.frame(Style_List)
+confusionMatrix(table(class4, train2$Classification))
 ```
 
 
-```{r}
-# Bar chart of the most likely beers
-Style_List %>% ggplot() +
-  geom_histogram(aes(y = Style_List, x = length(Style_List)), stat = "identity")
-```
+
 
 
