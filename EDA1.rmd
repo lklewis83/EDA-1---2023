@@ -94,7 +94,7 @@ str(beers_na)
 
 ```{r}
 #### Check and make sure I only see na in ABV(3) and IBU(4) columns ####
-which(is.na(beers_na), arr.ind = TRUE)
+#which(is.na(beers_na), arr.ind = TRUE)
 ```
 
 ```{r}
@@ -116,7 +116,7 @@ IBU_Cnt <- length(IBU_na_Index)
 
 IBU_Cnt
 ```
-
+Investigation Code Chunk
 ```{r}
 #### Understand which rows are missing both ABV and IBU ####
 #str(which(is.na(beers_na$IBU) & is.na(beers_na$ABV), arr.ind = TRUE))
@@ -125,22 +125,13 @@ IBU_Cnt
 
 # 62 matches so for every ABV NA there will also be an NA IBU
 # Check this theory
-beers_na[112, ] # Double Play Pilsner | 1541
-beers_na[117, ] # N Street Drive-In 50th Anniversary IPA |  1025
-beers_na[123, ] # Professor Black | 2490
-beers_na[124, ] # Little Boss | 2489
-beers_na[125, ] # Van Dayum! | 2488
+#beers_na[112, ] # Double Play Pilsner | 1541
+#beers_na[117, ] # N Street Drive-In 50th Anniversary IPA |  1025
+#beers_na[123, ] # Professor Black | 2490
+#beers_na[124, ] # Little Boss | 2489
+#beers_na[125, ] # Van Dayum! | 2488
 ```
 
-TEst Plot | Bad Results - Wont Use
-```{r}
-# MIssing Data PLot 1 ####
-g <- ggplot() +
-  geom_bar(aes(y = length(IBU_na_Index), x = length(ABV_na_Index)), stat = "Identity")
-
-
-ggplotly(g)
-```
 
 Plot to show the missing values in correlation to the size of beer, and we see that the smaller beers have more missing values
 ```{r}
@@ -159,16 +150,6 @@ beers_na %>%
 write.csv(beers_na, "Missing_Data.csv", row.names = T)
 ```
 
-```{r}
-# RENAME NA FIELDS | DO NOT USE ####
-#beers$ABV <- ifelse(is.na(beers$ABV),"Missing_ABV_Data",beers$ABV)
-#beers$IBU <- ifelse(is.na(beers$IBU),"Missing_IBU_Data",beers$IBU)
-
-
-#str(which(is.na(beers$IBU) & is.na(beers$ABV), arr.ind = TRUE))
-
-#view(beers)
-```
 
 Merge Datasets together for Question #2
 ```{r}
@@ -380,10 +361,10 @@ str(backup_ds)
 # MERGE STATE LAT AND LONG | FIX THIS IS DOUBLING ####
 
 # Has Lat and long cordinates
-US_Map <- map_data("world") %>% filter(region=="USA")
+#US_Map <- map_data("world") %>% filter(region=="USA")
 
 # rename column for merge
-colnames(US_Map)[6] <- c("Full_State")
+#colnames(US_Map)[6] <- c("Full_State")
 
 
 #str(US_Map)
@@ -393,10 +374,10 @@ colnames(US_Map)[6] <- c("Full_State")
 
 
 # Left Merge 
-plt_ds = merge(plt_ds, US_Map, by = "Full_State", all.x = T)
+#plt_ds = merge(plt_ds, US_Map, by = "Full_State", all.x = T)
 
 
-str(plt_ds)
+#str(plt_ds)
 
 ```
 
@@ -439,61 +420,85 @@ state_cnt %>% arrange(state_cnt, desc(Number_of_States)) %>%
 Top_Ten <- state_cnt[order(-state_cnt$Number_of_States), ]
   
 head(Top_Ten, 10) %>% 
-  ggplot(aes(reorder(Number_of_States, x = Full_State), x = Number_of_States, fill = Full_State)) +
+  ggplot(aes(reorder(Number_of_States, x = Full_State), x = Number_of_States, fill = Full_State, color = "red")) +
   geom_bar(stat = "identity") +
-  geom_text(aes(label = Number_of_States), size = 4, hjust = 1) + 
+  geom_text(aes(label = Number_of_States), size = 4, hjust = 1, color = "black") + 
   xlab("Number of Breweries") +
   ylab("State") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  scale_fill_brewer(palette = "YlOrRd")
+
+
+
 
 # ?color
 ```
-
-Question #4 Charts | Fix
+Bar Charts to compare the Median value of ABV vs IBU by state
 ```{r}
-# MAP PLOT IBU MEDIAN AND MEAN | WORK IN####
-# US MAP 
-plot_usmap(regions = "states") + 
-  geom_point(x = 88.07113, y = 30.25234, color = "blue", size = 3) +
-  geom_point(x = 31.9686, y = 99.9018, color = "Pink")
-  labs(title = "U.S. States",
-       subtitle = "This is a blank map of the United States.") + 
-  theme(panel.background=element_blank())
-
-## MAINE MAP PLOT ####
-plot_usmap(include = c("ME")) +
-  labs(title = "MAINE") +
-  theme(panel.background = element_rect(color = "blue"))
-
-## COLORADO MAP PLOT ####
-plot_usmap(include = c("CO")) +
-  labs(title = "COLORADO") +
-  theme(panel.background = element_rect(color = "blue"))
-
-## NEW ENGLAND PLOT ####
-plot_usmap(include = c("CT", "ME", "MA", "NH", "VT")) +
-  labs(title = "New England Region") +
-  theme(panel.background = element_rect(color = "blue"))
-
-# MAP PLOT NEEDS LAT AND LONG FOR STATE ABBREVIATION TO WORK
-#Heat MAP Video ####
-
-plt_ds %>% ggplot() +
-  geom_polygon(aes(x = long, y = lat)) +
-  geom_point(aes(x = IBU_Mean, y = IBU_Median, fill = State))
+Top_5_IBU <- plt_ds[order(-plt_ds$IBU_Median), ]
+Top_5_ABV <- plt_ds[order(-plt_ds$ABV_Median), ]
   
 
+# IBU CHART
+p3 <- head(Top_5_IBU, 5) %>% 
+  ggplot(aes(reorder(IBU_Median, x = Full_State), x = IBU_Median, fill = IBU_Median)) +
+  geom_bar(stat = "identity") +
+  xlab("IBU Median") +
+  ylab("State")  +
+  scale_fill_gradient(low = "black", high = "red") 
+  
+
+
+# ABV CHART
+?scale_fill_gradient
+p4 <- head(Top_5_ABV, 5) %>% 
+  ggplot(aes(reorder(ABV_Median, x = Full_State), x = ABV_Median, fill = ABV_Median)) +
+  geom_bar(stat = "identity") +
+  xlab("ABV Median") +
+  ylab("State") +
+  scale_fill_gradient(low = "black", high = "red") 
+
+
+
+
+cowplot::plot_grid(p3, p4, ncol = 2)
 ```
+
+Bar Charts to compare the TOP 5 State and their Median value of ABV vs IBU
+```{r}
+# IBU CHART
+p1 <- plt_ds %>% ggplot(aes(reorder(IBU_Median, x = State), x = IBU_Median, fill = IBU_Median)) +
+  geom_bar(stat = "identity") +
+  xlab("IBU Median") +
+  ylab("State")  +
+  scale_fill_gradient(low = "black", high = "red") 
+  
+
+
+# ABV CHART
+?scale_fill_gradient
+p2 <- plt_ds %>% ggplot(aes(reorder(ABV_Median, x = State), x = ABV_Median, fill = ABV_Median)) +
+  geom_bar(stat = "identity") +
+  xlab("ABV Median") +
+  ylab("State") +
+  scale_fill_gradient(low = "black", high = "red") 
+
+
+
+
+cowplot::plot_grid(p1, p2, ncol = 2)
+```
+
 
 Which state has the most bitter (IBU) beer? Question #5
 ```{r}
 # PLOT IBU Median by States ####
-plot_ds %>% arrange(IBU_Median, desc(State)) %>%
-  ggplot(aes(x = IBU_Median, fill = State)) +
+plt_ds %>% arrange(IBU_Median, desc(Full_State)) %>%
+  ggplot(aes(x = IBU_Median, fill = Full_State)) +
   geom_histogram() +
   xlab("IBU Median by States") +
   ylab("") +
-  facet_wrap(IBU_Median ~ State) +
+  facet_wrap(IBU_Median ~ Full_State) +
   scale_y_discrete() +
   theme(legend.position = "none")
 
@@ -503,15 +508,15 @@ plot_ds %>% arrange(IBU_Median, desc(State)) %>%
 Which state has the maximum alcoholic (ABV) beer? Question #5 & 6
 ```{r}
 # FIX ROUNDING ####
-plot_ds$ABV_Median <- round(plot_ds$ABV_Median, digits = 3)
+plt_ds$ABV_Median <- round(plt_ds$ABV_Median, digits = 3)
 
 # PLOT ABV Median by States ####
-plot_ds %>% arrange(ABV_Median, desc(State)) %>%
-  ggplot(aes(x = ABV_Median, fill = State)) +
+plt_ds %>% arrange(ABV_Median, desc(Full_State)) %>%
+  ggplot(aes(x = ABV_Median, fill = Full_State)) +
   geom_histogram() +
   xlab("ABV Median by States") +
   ylab("") +
-  facet_wrap(ABV_Median ~ State) +
+  facet_wrap(ABV_Median ~ Full_State) +
   scale_y_discrete() +
   theme(legend.position = "none")
 
@@ -520,17 +525,18 @@ plot_ds %>% arrange(ABV_Median, desc(State)) %>%
 Draw a scatter plot.  7. Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Question #7
 ```{r}
 # MEDIAN PLOT | relationship between IBU and ABV ####
-plot_ds %>% ggplot() +
-  geom_point(aes(x = ABV_Median , y = IBU_Median)) +
-  geom_smooth(aes(x = ABV_Median , y = IBU_Median))
+plt_ds %>% ggplot() +
+  geom_point(aes(x = ABV_Median , y = IBU_Median, color = ABV_Median, alpha = IBU_Median)) +
+  geom_smooth(aes(x = ABV_Median , y = IBU_Median), color = "red") +
+  scale_color_gradient2(low = "black", high = "red")
   
 ```
 
 ```{r}
 # All Data PLOT | relationship between IBU and ABV ####
 all_beer_ds %>% ggplot() +
-  geom_point(aes(x = ABV, y = IBU, color = IBU), position = "jitter") +
-  geom_smooth(aes(x = ABV, y = IBU, color = IBU)) +
+  geom_point(aes(x = ABV, y = IBU, color = ABV), position = "jitter") +
+  geom_smooth(aes(x = ABV, y = IBU, color = IBU), color = "red") +
   scale_color_gradient2(low = "black", high = "red")
   
 ```
