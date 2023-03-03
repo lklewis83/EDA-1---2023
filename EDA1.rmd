@@ -352,7 +352,7 @@ backup_ds = all_beer_ds
 
 #all_beer_ds <- merge(all_beer_ds, state_abb_list, by = "State", all.x = T )
 
-str(beer_ds)
+#str(beer_ds)
 str(all_beer_ds)
 str(backup_ds)
 ```
@@ -416,7 +416,6 @@ state_cnt %>% arrange(state_cnt, desc(Number_of_States)) %>%
 
 ```{r}
 # PLOT2 Bar Chart| How many breweries are present in each state? ####
-## FIX NOT GRABBING ACTUAL TOP TEN ####
 Top_Ten <- state_cnt[order(-state_cnt$Number_of_States), ]
   
 head(Top_Ten, 10) %>% 
@@ -433,6 +432,10 @@ head(Top_Ten, 10) %>%
 
 # ?color
 ```
+
+
+Median Charts for Question #4
+
 Bar Charts to compare the Median value of ABV vs IBU by state
 ```{r}
 Top_5_IBU <- plt_ds[order(-plt_ds$IBU_Median), ]
@@ -464,6 +467,9 @@ p4 <- head(Top_5_ABV, 5) %>%
 cowplot::plot_grid(p3, p4, ncol = 2)
 ```
 
+
+
+
 Bar Charts to compare the TOP 5 State and their Median value of ABV vs IBU
 ```{r}
 # IBU CHART
@@ -490,7 +496,7 @@ cowplot::plot_grid(p1, p2, ncol = 2)
 ```
 
 
-Which state has the most bitter (IBU) beer? Question #5
+Breakdown of of Median values by State
 ```{r}
 # PLOT IBU Median by States ####
 plt_ds %>% arrange(IBU_Median, desc(Full_State)) %>%
@@ -505,7 +511,7 @@ plt_ds %>% arrange(IBU_Median, desc(Full_State)) %>%
 ```
 
 
-Which state has the maximum alcoholic (ABV) beer? Question #5 & 6
+
 ```{r}
 # FIX ROUNDING ####
 plt_ds$ABV_Median <- round(plt_ds$ABV_Median, digits = 3)
@@ -522,7 +528,50 @@ plt_ds %>% arrange(ABV_Median, desc(Full_State)) %>%
 
 ```
 
-Draw a scatter plot.  7. Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Question #7
+Which state has the maximum alcoholic (ABV) beer? Question #5
+```{r}
+# IBU CHART
+Max_ABV <- head(Top_5_ABV, 1)
+Max_ABV$Lat = 37.8393
+Max_ABV$Long = 84.2700
+
+Max_IBU <- head(Top_5_IBU, 1)
+Max_IBU$Lat = 64.2008
+Max_IBU$Long = 149.4937
+
+
+
+```
+
+
+```{r}
+median_map <- plt_ds
+
+colnames(median_map)[1] <- c("state")
+colnames(Max_ABV)[1] <- c("state")
+colnames(Max_IBU)[1] <- c("state")
+
+
+
+plot_usmap(data = median_map, values = "ABV_Median") +
+  geom_point( x = 37.8393, y = 84.2700, color = "black", size = 4, shape = 16) +
+  labs(title = "Max ABV State: Kentucky") +
+  scale_fill_gradient(low = "dark grey", high = "red") 
+
+```
+  
+
+```{r}
+plot_usmap(data = median_map, values = "IBU_Median") +
+  geom_point( x = 61.2176, y = 149.8997, color = "black", size = 4, shape = 16) +
+  labs(title = "Max IBU State: Alaska") +
+  scale_fill_gradient(low = "dark grey", high = "red") 
+
+```
+
+
+
+Question #7: Is there an apparent relationship between the bitterness of the beer and its alcoholic content? 
 ```{r}
 # MEDIAN PLOT | relationship between IBU and ABV ####
 plt_ds %>% ggplot() +
