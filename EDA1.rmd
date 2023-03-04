@@ -176,11 +176,7 @@ str(all_beer_ds)
 
 
 Handle Missing Values for Question #3
-```{r}
-## Drop Missing Values - Use Until Loop is Fixed ####
-# all_beer_ds = drop_na(all_beer_ds)
-# DROP ------------------------------------
-```
+
 
 Replace ABV and IBU missing values with Styled median values. This way when we go to grab the median or results wont be so skewed. Especially since we have close to half of the data set missing values.
 ```{r}
@@ -205,22 +201,46 @@ no_style_IBU_cnt <- median(style_IBU_cnt$IBU)
 
 
 # Capture beer index for Loop
-Ale_index <- which(grepl("Ale", all_beer_ds$Style))
+Ale_index <- which(grepl("Blonde Ale", all_beer_ds$Style))
+Red_index <- which(grepl("Red Ale", all_beer_ds$Style))
+APA_index <- which(grepl("American Pale Ale", all_beer_ds$Style))
+Wheat_index <- which(grepl("Wheat Ale", all_beer_ds$Style))
 lager_index <- which(grepl("Lager", all_beer_ds$Style))
 Stout_index <- which(grepl("Stout", all_beer_ds$Style))
+Mead_index <- which(grepl("Mead", all_beer_ds$Style))
+Cider_index <- which(grepl("Cider", all_beer_ds$Style))
+IPA_index <- which(grepl("American IPA", all_beer_ds$Style))
+Double_index <- which(grepl("American Double", all_beer_ds$Style))
 missing_index_IBU <- which(is.na(all_beer_ds$IBU))
 
 
 
-# Update all American IPA beers with the following value
-all_beer_ds$IBU[all_beer_ds$Style == "American IPA" & is.na(all_beer_ds$IBU)] <- 55
-
-# ALE Replacement
+# American Blonde Ale 
 for (a in 1:length(Ale_index)) {
   
-  all_beer_ds[Ale_index[a], "IBU"] = 35
+  all_beer_ds[Ale_index[a], "IBU"] = 15
 }  
 
+
+# American Amber / Red Ale
+for (r in 1:length(Red_index)) {
+  
+  all_beer_ds[Red_index[r], "IBU"] = 17
+}  
+
+
+# American Pale Ale (APA)
+for (p in 1:length(APA_index)) {
+  
+  all_beer_ds[APA_index[p], "IBU"] = 35
+}  
+
+
+# American Pale Wheat Ale
+for (w in 1:length(Wheat_index)) {
+  
+  all_beer_ds[Wheat_index[w], "IBU"] = 10
+}  
 
 
 # lager Replacement
@@ -229,14 +249,46 @@ for (l in 1:length(lager_index)) {
   all_beer_ds[lager_index[l], "IBU"] = 8
 }  
 
+
 # Stout Replacement
 for (s in 1:length(Stout_index)) {
   
-  all_beer_ds[Stout_index[s], "IBU"] = no_style_IBU_cnt
+  all_beer_ds[Stout_index[s], "IBU"] = 25
 } 
 
 
+# Mead Replacement
+for (m in 1:length(Mead_index)) {
+  
+  all_beer_ds[Mead_index[m], "IBU"] = 0
+} 
 
+
+# Cider Replacement
+for (c in 1:length(Cider_index)) {
+  
+  all_beer_ds[Cider_index[c], "IBU"] = 5
+} 
+
+
+# IPA Replacement
+for (p in 1:length(IPA_index)) {
+  
+  all_beer_ds[IPA_index[p], "IBU"] = 55
+} 
+
+
+# Double Replacement
+for (d in 1:length(Double_index)) {
+  
+  all_beer_ds[Double_index[d], "IBU"] = 65
+} 
+
+
+```
+
+```{r}
+# Catch the leftovers IBU Values
 for (g in 1:length(missing_index_IBU)) {
       
   # General Replacement
@@ -244,7 +296,6 @@ for (g in 1:length(missing_index_IBU)) {
  
 }
 ```
-
 
 ```{r}
 ## ABV LOOP MEDIAN ####
@@ -256,22 +307,8 @@ for (i in 1:length(index_safe_beers_ABV)) {
 
 
 ```{r}
-# REMOVE STRING VALUES FROM NUMERIC COLUMN SO MATHMATICAL FORUMALS WILL WORK ####
-
 ## Beers_ds CHECKPOINT ####
 beers_ds <- all_beer_ds
-
-#beers_ds$State = as.factor(beers_ds$State)
-#beers_ds$IBU = as.numeric(beers_ds$IBU)
-#beers_ds$ABV = as.numeric(beers_ds$ABV)
-
-#beers_ds <- beers_ds %>%
-  #filter(!is.character(IBU))
-
-#beers_ds <- beers_ds %>%
-  #filter(!is.character(ABV))
-
-#beers_ds = drop_na(beers_ds)
 
 str(beers_ds)
 ```
@@ -357,29 +394,7 @@ str(all_beer_ds)
 str(backup_ds)
 ```
 
-```{r}
-# MERGE STATE LAT AND LONG | FIX THIS IS DOUBLING ####
 
-# Has Lat and long cordinates
-#US_Map <- map_data("world") %>% filter(region=="USA")
-
-# rename column for merge
-#colnames(US_Map)[6] <- c("Full_State")
-
-
-#str(US_Map)
-#str(plt_ds)
-
-#view(US_Map)
-
-
-# Left Merge 
-#plt_ds = merge(plt_ds, US_Map, by = "Full_State", all.x = T)
-
-
-#str(plt_ds)
-
-```
 
 Compute the Number of Breweries by State Question #1
 ```{r}
@@ -453,13 +468,12 @@ p3 <- head(Top_5_IBU, 5) %>%
 
 
 # ABV CHART
-?scale_fill_gradient
 p4 <- head(Top_5_ABV, 5) %>% 
   ggplot(aes(reorder(ABV_Median, x = Full_State), x = ABV_Median, fill = ABV_Median)) +
   geom_bar(stat = "identity") +
   xlab("ABV Median") +
   ylab("State") +
-  scale_fill_gradient(low = "black", high = "red") 
+  scale_fill_gradient(low = "black", high = "red")
 
 
 
@@ -477,17 +491,18 @@ p1 <- plt_ds %>% ggplot(aes(reorder(IBU_Median, x = State), x = IBU_Median, fill
   geom_bar(stat = "identity") +
   xlab("IBU Median") +
   ylab("State")  +
-  scale_fill_gradient(low = "black", high = "red") 
+  scale_fill_gradient(low = "black", high = "red") +
+  theme(axis.text.y = element_blank()) 
   
 
 
 # ABV CHART
-?scale_fill_gradient
 p2 <- plt_ds %>% ggplot(aes(reorder(ABV_Median, x = State), x = ABV_Median, fill = ABV_Median)) +
   geom_bar(stat = "identity") +
   xlab("ABV Median") +
   ylab("State") +
-  scale_fill_gradient(low = "black", high = "red") 
+  scale_fill_gradient(low = "black", high = "red")  +
+  theme(axis.text.y = element_blank())
 
 
 
@@ -527,20 +542,33 @@ plt_ds %>% arrange(ABV_Median, desc(Full_State)) %>%
   theme(legend.position = "none")
 
 ```
+Review the Summary Data of the data sets for Question #6
+```{r}
+# Reviewing all beers ds | The entire data set
+summary(all_beer_ds)
+
+```
+
+```{r}
+# Reviewing plt ds | Median Values of the data set
+summary(plt_ds)
+
+```
+
+
 
 Which state has the maximum alcoholic (ABV) beer? Question #5
 ```{r}
-# IBU CHART
+# Max ABV State
 Max_ABV <- head(Top_5_ABV, 1)
-Max_ABV$Lat = 37.8393
-Max_ABV$Long = 84.2700
+Max_ABV
+```
 
+
+```{r}
+# MAX IBU State
 Max_IBU <- head(Top_5_IBU, 1)
-Max_IBU$Lat = 64.2008
-Max_IBU$Long = 149.4937
-
-
-
+Max_IBU
 ```
 
 
@@ -554,22 +582,30 @@ colnames(Max_IBU)[1] <- c("state")
 
 
 plot_usmap(data = median_map, values = "ABV_Median") +
-  geom_point( x = 37.8393, y = 84.2700, color = "black", size = 4, shape = 16) +
-  labs(title = "Max ABV State: Kentucky") +
+  labs(title = "Median Heatmap by State") +
   scale_fill_gradient(low = "dark grey", high = "red") 
 
 ```
   
+```{r}
+# Kentucky Map ABV MAX STATE
+plot_usmap(data = median_map, values = "ABV_Median", include = c("KY"),  labels = TRUE, label_color = "white", show.legend = FALSE) +
+  labs(title = paste(Max_ABV$Full_State, " Max ABV ", Max_ABV$ABV_Median)) +
+  scale_fill_gradient(low = "dark grey", high = "red")
+```
 
 ```{r}
 plot_usmap(data = median_map, values = "IBU_Median") +
-  geom_point( x = 61.2176, y = 149.8997, color = "black", size = 4, shape = 16) +
-  labs(title = "Max IBU State: Alaska") +
+  labs(title = "Median Heatmap by State") +
   scale_fill_gradient(low = "dark grey", high = "red") 
-
 ```
 
-
+```{r}
+# Kentucky Map ABV MAX STATE
+plot_usmap(data = median_map, values = "ABV_Median", include = c("NJ"),  labels = TRUE, label_color = "white", show.legend = FALSE) +
+  labs(title = paste(Max_IBU$Full_State, " Max IBU ", Max_IBU$IBU_Median)) +
+  scale_fill_gradient(low = "dark grey", high = "red")
+```
 
 Question #7: Is there an apparent relationship between the bitterness of the beer and its alcoholic content? 
 ```{r}
@@ -577,7 +613,8 @@ Question #7: Is there an apparent relationship between the bitterness of the bee
 plt_ds %>% ggplot() +
   geom_point(aes(x = ABV_Median , y = IBU_Median, color = ABV_Median, alpha = IBU_Median)) +
   geom_smooth(aes(x = ABV_Median , y = IBU_Median), color = "red") +
-  scale_color_gradient2(low = "black", high = "red")
+  scale_color_gradient2(low = "black", high = "red") +
+  theme(legend.position = "none")
   
 ```
 
@@ -586,7 +623,8 @@ plt_ds %>% ggplot() +
 all_beer_ds %>% ggplot() +
   geom_point(aes(x = ABV, y = IBU, color = ABV), position = "jitter") +
   geom_smooth(aes(x = ABV, y = IBU, color = IBU), color = "red") +
-  scale_color_gradient2(low = "black", high = "red")
+  scale_color_gradient2(low = "black", high = "red")  +
+  theme(legend.position = "none")
   
 ```
 
